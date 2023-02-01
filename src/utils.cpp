@@ -9,7 +9,7 @@ auto init_matrices(double* A, double* B, double* C, std::size_t size) -> void {
         for (std::size_t j = 0; j < size; j++) {
             A[i * size + j] = drand48();
             B[i * size + j] = drand48();
-            C[i * size + j] = 0.0;
+            C[i * size + j] = drand48();
         }
     }
 }
