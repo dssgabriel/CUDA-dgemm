@@ -69,11 +69,19 @@ auto dgemm(
 
     duration = utils::elapsed_seconds(start, stop);
     #if defined(DEBUG)
-    printf("h_C(0, 0) = %lf\n", h_C[0]);
+    fprintf(stdout, "C: {\n");
+    for (size_t i = 0; i < 5; ++i) {
+        fprintf(stdout, "  { ");
+        for (size_t j = 0; j < 5; ++j) {
+            fprintf(stdout, "%.3lf, ", h_C[i * n + j]);
+        }
+        fprintf(stdout, "%s }\n", n > 5 ? "..." : "\b\b");
+    }
+    fprintf(stdout, "  %s}\n", n > 5 ? "...\n" : "\b\b");
     #endif
     printf(
         "  Host time: %.6lf ms, GFlop/s: %.3lf\n",
-        duration * 1.0E-3,
+        duration * 1.0E+3,
         m * n * k * 1.0E-9 / duration
     );
 
@@ -207,12 +215,20 @@ auto dgemm(
     }
 
     #if defined(DEBUG)
-    printf("d_C(0, 0) = %lf\n", result[0]);
+    fprintf(stdout, "C: {\n");
+    for (size_t i = 0; i < 5; ++i) {
+        fprintf(stdout, "  { ");
+        for (size_t j = 0; j < 5; ++j) {
+            fprintf(stdout, "%.3lf, ", result[i * n + j]);
+        }
+        fprintf(stdout, "%s }\n", n > 5 ? "..." : "\b\b");
+    }
+    fprintf(stdout, "  %s}\n", n > 5 ? "...\n" : "\b\b");
     #endif
     printf(
         "Device time: %.6lf ms, GFlop/s: %.3lf\n",
-        duration * 1.0E-3,
-        m * n * k * 1.0E-9 / duration
+        duration * 1.0E+3,
+        (double)(m * n * k) * 1.0E-9 / duration
     );
 
 failure:
