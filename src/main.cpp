@@ -5,41 +5,50 @@
 #include <cstdio>
 #include <cstdlib>
 
+#define DEFAULT_SIZE 1024
+
 auto main(int32_t argc, char** argv) -> int32_t {
-    std::size_t size = (argc < 2) ? 1024 : (std::size_t)(atoi(argv[1]));
-    printf("Double-precision general matrix multiplication benchmark (%zux%zu)\n", size, size);
+    std::size_t n = (argc < 2) ? DEFAULT_SIZE : (std::size_t)(atoi(argv[1]));
+    printf("DGEMM (%zux%zu):\n", n, n);
 
-    int32_t status_code = 0;
-    double alpha = drand48();
-    double beta = drand48();
-
-    double* A = (double*)(malloc(size * size * sizeof(double)));
+    // Allocations
+    double* A = (double*)(malloc(n * n * sizeof(double)));
     if (!A) {
         fprintf(stderr, "error: failed to allocate matrix `A`\n");
-        status_code = -1;
-    }
-    double* B = (double*)(malloc(size * size * sizeof(double)));
-    if (!B) {
-        fprintf(stderr, "error: failed to allocate matrix `B`\n");
-        status_code = -1;
-    }
-    double* C = (double*)(malloc(size * size * sizeof(double)));
-    if (!C) {
-        fprintf(stderr, "error: failed to allocate matrix `C`\n");
-        status_code = -1;
+        return EXIT_FAILURE;
     }
 
-    if (status_code != 0) { goto failure; }
-    utils::init_matrices(A, B, C, size);
-    status_code = drivers::host::dgemm(size, size, size, alpha, A, B, beta, C);
-    if (status_code != 0) {
+    double* B = (double*)(malloc(n * n * sizeof(double)));
+    if (!B) {
+        fprintf(stderr, "error: failed to allocate matrix `B`\n");
+        free(A);
+        return EXIT_FAILURE;
+    }
+
+    double* C = (double*)(malloc(n * n * sizeof(double)));
+    if (!C) {
+        fprintf(stderr, "error: failed to allocate matrix `C`\n");
+        free(A);
+        free(B);
+        return EXIT_FAILURE;
+    }
+
+    // Initializations
+    double alpha = drand48();
+    double beta = drand48();
+    utils::init_matrices(A, B, C, n);
+
+    // Invoke kernels
+    int32_t status_code;
+    status_code = drivers::host::dgemm(n, n, n, alpha, A, B, beta, C);
+    if (status_code != EXIT_SUCCESS) {
         fprintf(stderr, "error: something went wrong running host `dgemm`, aborting\n");
-        goto exit;
+        goto failure;
     }
 
     status_code = drivers::device::dgemm(
         drivers::device::DgemmKind::Naive,
-        size, size, size,
+        n, n, n,
         alpha,
         A,
         B,
@@ -48,12 +57,12 @@ auto main(int32_t argc, char** argv) -> int32_t {
     );
     if (status_code != 0) {
         fprintf(stderr, "error: something went wrong running naive device `dgemm`, aborting\n");
-        goto exit;
+        goto failure;
     }
 
     status_code = drivers::device::dgemm(
         drivers::device::DgemmKind::Shared,
-        size, size, size,
+        n, n, n,
         alpha,
         A,
         B,
@@ -62,7 +71,7 @@ auto main(int32_t argc, char** argv) -> int32_t {
     );
     if (status_code != 0) {
         fprintf(stderr, "error: something went wrong running shared device `dgemm`, aborting\n");
-        goto exit;
+        goto failure;
     }
 
 failure:
@@ -70,6 +79,5 @@ failure:
     if (B) { free(B); }
     if (C) { free(C); }
 
-exit:
     return status_code;
 }
